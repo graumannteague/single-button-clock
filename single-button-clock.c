@@ -42,7 +42,7 @@
  * BUGS:
  *
  * no bounds checking when setting the time at the moment - so don't
- * set the hours past 12!
+ * set the hours past 12, or minutes past 59!
  *
  * you can't set the minutes to 0!
  * 
