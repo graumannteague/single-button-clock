@@ -98,3 +98,6 @@ fuse:
 install: $(PRG).hex
 	avrdude -p $(MCU_TARGET) -c $(PROGRAMMER) -P $(PORT) \
 	-U flash:w:$(PRG).hex:i
+
+size: $(PRG).elf
+	avr-size -C --mcu=$(MCU_TARGET) $(PRG).elf
