@@ -26,6 +26,10 @@
  * LED to blink once, then press the button 7 times, then wait for the
  * LED to blink twice
  *
+ * if you set hours past 12, or mins past 59, the LED will blink three
+ * times to indicate an invalid value, and you will have to try entering
+ * the invalid value again
+ *
  * TECHNICAL:
  *
  * this program uses the 16-bit Timer/Counter 1 in CTC mode, to call an
@@ -41,10 +45,7 @@
  *
  * BUGS:
  *
- * no bounds checking when setting the time at the moment - so don't
- * set the hours past 12, or minutes past 59!
- *
- * you can't set the minutes to 0!
+ * you can't set the minutes to 0
  * 
  * you can't set the seconds
  *
@@ -135,10 +136,8 @@ void led_flash(uint8_t count) {
 	return;
 }
 
-void set_var(volatile uint8_t *var, uint8_t count) {
-	/* set *var to a value using only button presses.
-	 * count is the number of times to blink the LED once set
-	 */
+void set_var(volatile uint8_t *var) {
+	/* set *var to a value using only button presses. */
 
 	loop_until_bit_is_clear(BUTTON_PIN, BUTTON);	/* wait for button press */
 	_delay_ms(DEBOUNCE_TIME);
@@ -156,8 +155,6 @@ void set_var(volatile uint8_t *var, uint8_t count) {
 		}
 	}
 
-	led_flash(count);
-
 	return;
 }
 
@@ -169,8 +166,20 @@ void set_clock(void) {
 	 * must occur within 3 seconds.  LED will flash twice to signify that
 	 * minute is set. */
 
-	set_var(&tod_hours, 1);
-	set_var(&tod_mins, 2);
+	set_var(&tod_hours);
+	while (tod_hours > 12) {
+		led_flash(3);			/* invalid hours */
+		tod_hours = 0;
+		set_var(&tod_hours);	/* repeat until correct */
+	}
+	led_flash(1);				/* indicate we have a valid hours val */
+	set_var(&tod_mins);
+	while (tod_mins > 59) {
+		led_flash(3);			/* invalid mins */
+		tod_mins = 0;
+		set_var(&tod_mins);
+	}
+	led_flash(2);				/* indicate we have a valid mins val */
 
 	return;
 }
