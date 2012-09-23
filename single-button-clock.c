@@ -53,11 +53,14 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/sfr_defs.h>
 
-#define F_CPU	8000000UL
+#define F_CPU 8000000UL
+#define BAUD 31250
+#define BAUD_PRESCALE (((F_CPU / (BAUD * 16UL))) - 1)
 
 #include <util/delay.h>
 
@@ -71,6 +74,11 @@
 #define	BUTTON_PORT		PORTD
 
 #define DEBOUNCE_TIME	25
+#define TIME_STR_LEN	7
+
+#define	MIDI_NOTE_ON	0x90
+#define MIDI_NOTE_OFF	0x80
+#define MIDI_VELOCITY_MAX	127
 
 volatile uint8_t display_flag = 0;
 volatile uint8_t ticks = 0;		/* incremented every 1/50 sec, reset to 0 every second */
@@ -96,6 +104,58 @@ void init_timer(void) {
 	TCCR1B |= _BV(CS11);		/* set prescaler to 8 */
 	TCNT1 = 0;
 	
+	return;
+}
+
+void init_uart(void) {
+    UBRR0H = (BAUD_PRESCALE) >> 8;
+    UBRR0L = BAUD_PRESCALE;
+
+    UCSR0C = _BV(UCSZ01) | _BV(UCSZ00);     /* 8-bit data */
+    UCSR0B = _BV(TXEN0);       /* Only enable TX */
+
+	return;
+}
+
+void uart_send_char(char d) {
+    loop_until_bit_is_set(UCSR0A, UDRE0);
+    UDR0 = d;
+
+	return;
+}
+
+void uart_send_string(char *s) {
+	while (*s) {
+		uart_send_char(*s);
+		s++;
+	}
+
+	return;
+}
+
+void uart_send_midi_note_on(uint8_t channel, uint8_t keynum, uint8_t velocity) {
+	uint8_t b0, b1, b2;
+
+	b0 = MIDI_NOTE_ON | (channel-1);
+	b1 = keynum;
+	b2 = velocity;
+	uart_send_char(b0);
+	uart_send_char(b1);
+	uart_send_char(b2);
+
+	return;
+}
+
+void uart_send_midi_note_off(uint8_t channel, uint8_t keynum, uint8_t velocity) {
+	uint8_t b0, b1, b2;
+
+	b0 = MIDI_NOTE_OFF | (channel-1);
+	b1 = keynum;
+	b2 = velocity;
+	uart_send_char(b0);
+	uart_send_char(b1);
+	uart_send_char(b2);
+
 	return;
 }
 
@@ -184,15 +244,41 @@ void set_clock(void) {
 	return;
 }
 
+void uart_play_note(uint8_t channel, uint8_t keynum, uint8_t velocity) {
+	uart_send_midi_note_on(channel, keynum, velocity);
+	led_short_delay();
+	uart_send_midi_note_off(channel, keynum, velocity);
+	return;
+}
+
+void uart_play_arpeggio(uint8_t basenote) {
+	uart_play_note(1, basenote, MIDI_VELOCITY_MAX);
+	led_long_delay();
+	uart_play_note(1, basenote+4, MIDI_VELOCITY_MAX);
+	led_long_delay();
+	uart_play_note(1, basenote+7, MIDI_VELOCITY_MAX);
+	led_long_delay();
+	uart_play_note(1, basenote+12, MIDI_VELOCITY_MAX);
+	led_long_delay();
+
+	return;
+}
+
 int main(void) {
+
+	/* char time_str[TIME_STR_LEN]; */
 
 	init_ports();
 	set_clock();
 	init_timer();
+	init_uart();
 	sei();
 
 	for (;;) {
 		if (display_flag) {
+			/* snprintf(time_str, TIME_STR_LEN, "%2d:%2d\n", tod_hours, tod_mins); */
+			/* uart_send_string(time_str); */
+			uart_play_arpeggio(60);
 			led_flash(tod_hours);
 			led_long_delay();
 			led_flash(tod_mins);
