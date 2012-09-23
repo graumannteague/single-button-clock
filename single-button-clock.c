@@ -43,6 +43,19 @@
  * Timer/Counter 1 is also used earlier on to set the time, with a
  * different prescaler value and with CTC turned off
  *
+ * MIDI chimes:
+ *
+ * you can connect a MIDI device e.g. synth module, and have it play
+ * chimes (currently an arpeggio) every second.  Just connect up a 5-pin
+ * male DIN plug as follows:
+ *
+ *		pin 5:	AVR TXD (pin 3 on a 328P)
+ *		pin 2:	GND
+ *		pin 4:	+5V via 220ohm resistor
+ *
+ * and connect the plug to the MIDI IN of a synth module.  Set it to listen
+ * on MIDI Channel 1.
+ *
  * BUGS:
  *
  * you can't set the minutes to 0
