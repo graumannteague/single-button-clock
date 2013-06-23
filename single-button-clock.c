@@ -215,6 +215,7 @@ void set_var(volatile uint8_t *var) {
 	loop_until_bit_is_clear(BUTTON_PIN, BUTTON);	/* wait for button press */
 	_delay_ms(DEBOUNCE_TIME);
 	loop_until_bit_is_set(BUTTON_PIN, BUTTON);
+	_delay_ms(DEBOUNCE_TIME);
 	/* press is complete */
 	(*var)++;
 	TCCR1B = (_BV(CS12) | _BV(CS10));	/* prescaler on 1024 */
@@ -223,6 +224,7 @@ void set_var(volatile uint8_t *var) {
 		if bit_is_clear(BUTTON_PIN, BUTTON) {
 			_delay_ms(DEBOUNCE_TIME);
 			loop_until_bit_is_set(BUTTON_PIN, BUTTON);
+			_delay_ms(DEBOUNCE_TIME);
 			(*var)++;
 			TCNT1 = 0;
 		}
